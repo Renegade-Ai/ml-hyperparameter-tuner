@@ -1,0 +1,15 @@
+# Development dependencies
+-r requirements.in
+
+# Testing
+pytest>=7.0.0
+pytest-cov>=3.0.0  # For test coverage reporting
+
+# Code quality
+black>=22.0.0      # Code formatting
+flake8>=4.0.0      # Code linting
+isort>=5.0.0       # Import sorting
+mypy>=1.0.0        # Type checking
+
+# Development tools
+pip-tools>=6.13.0  # Dependency management
