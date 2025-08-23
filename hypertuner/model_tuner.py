@@ -26,10 +26,17 @@ from sklearn.metrics import (
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV, cross_val_score
 from sklearn.neural_network import MLPClassifier, MLPRegressor
+from sklearn.pipeline import Pipeline
 from sklearn.svm import SVC, SVR
 
 
 class ModelTuner:
+    # Common TF-IDF hyperparameters used across all text models
+    TFIDF_PARAMS = {
+        "tfidf__max_features": [500, 1000, 1500],
+        "tfidf__ngram_range": [(1, 1), (1, 2)],
+    }
+
     def __init__(
         self, model_name, task_type="classification", random_state=7, is_text_data=False
     ):
@@ -90,8 +97,6 @@ class ModelTuner:
 
         # If working with text data, wrap the model in a pipeline with TF-IDF
         if self.is_text_data:
-            from sklearn.feature_extraction.text import TfidfVectorizer
-            from sklearn.pipeline import Pipeline
 
             self.model = Pipeline(
                 [
@@ -124,25 +129,89 @@ class ModelTuner:
             self.param_grids = {
                 "classification": {
                     "random_forest": {
-                        "classifier__n_estimators": [100, 200, 300],
-                        "classifier__max_depth": [None, 10, 20, 30],
-                        "classifier__min_samples_split": [2, 5, 10],
-                        "classifier__min_samples_leaf": [1, 2, 4],
-                        "classifier__max_features": ["sqrt", "log2"],
-                        "tfidf__max_features": [500, 1000, 1500],
-                        "tfidf__ngram_range": [(1, 1), (1, 2)],
-                    }
+                        "n_estimators": [100, 200, 300],
+                        "max_depth": [None, 10, 20, 30],
+                        "min_samples_split": [2, 5, 10],
+                        "min_samples_leaf": [1, 2, 4],
+                        "max_features": ["sqrt", "log2"],
+                        **self.TFIDF_PARAMS,
+                    },
+                    "gradient_boosting": {
+                        "learning_rate": [0.01, 0.1, 0.2],
+                        "n_estimators": [50, 100, 200],
+                        "max_depth": [3, 5, 7],
+                        "subsample": [0.8, 0.9, 1.0],
+                        "min_samples_split": [2, 5, 10],
+                        **self.TFIDF_PARAMS,
+                    },
+                    "logistic_regression": {
+                        "penalty": ["l1", "l2", "elasticnet"],
+                        "C": [0.001, 0.01, 0.1, 1, 10],
+                        "solver": ["liblinear", "saga"],
+                        **self.TFIDF_PARAMS,
+                    },
+                    "svm": {
+                        "C": [0.001, 0.01, 0.1, 1, 10],
+                        "kernel": ["linear", "rbf", "poly"],
+                        "gamma": ["scale", "auto", 0.001, 0.01, 0.1],
+                        **self.TFIDF_PARAMS,
+                    },
+                    "neural_network": {
+                        "hidden_layer_sizes": [(50,), (100,), (50, 50), (100, 50)],
+                        "learning_rate_init": [0.001, 0.01, 0.1],
+                        "alpha": [0.0001, 0.001, 0.01],
+                        "activation": ["relu", "tanh"],
+                        **self.TFIDF_PARAMS,
+                    },
                 },
                 "regression": {
                     "random_forest": {
-                        "classifier__n_estimators": [100, 200, 300],
-                        "classifier__max_depth": [None, 10, 20, 30],
-                        "classifier__min_samples_split": [2, 5, 10],
-                        "classifier__min_samples_leaf": [1, 2, 4],
-                        "classifier__max_features": ["sqrt", "log2"],
+                        "n_estimators": [100, 200, 300],
+                        "max_depth": [None, 10, 20, 30],
+                        "min_samples_split": [2, 5, 10],
+                        "min_samples_leaf": [1, 2, 4],
+                        "max_features": ["sqrt", "log2"],
+                        **self.TFIDF_PARAMS,
+                    },
+                    "gradient_boosting": {
+                        "n_estimators": [50, 100, 200],
+                        "learning_rate": [0.01, 0.1, 0.2],
+                        "max_depth": [3, 5, 7],
+                        "subsample": [0.8, 0.9, 1.0],
+                        "min_samples_split": [2, 5, 10],
                         "tfidf__max_features": [500, 1000, 1500],
                         "tfidf__ngram_range": [(1, 1), (1, 2)],
-                    }
+                    },
+                    "linear_regression": {
+                        "fit_intercept": [True, False],
+                        "normalize": [True, False],
+                        **self.TFIDF_PARAMS,
+                    },
+                    "ridge": {
+                        "alpha": [0.1, 1.0, 10.0, 100.0, 1000.0],
+                        "fit_intercept": [True, False],
+                        "normalize": [True, False],
+                        **self.TFIDF_PARAMS,
+                    },
+                    "lasso": {
+                        "alpha": [0.01, 0.1, 1.0, 10.0, 100.0],
+                        "fit_intercept": [True, False],
+                        "normalize": [True, False],
+                        **self.TFIDF_PARAMS,
+                    },
+                    "svm": {
+                        "C": [0.1, 1.0, 10.0, 100.0],
+                        "kernel": ["linear", "rbf", "poly"],
+                        "gamma": ["scale", "auto", 0.001, 0.01, 0.1],
+                        **self.TFIDF_PARAMS,
+                    },
+                    "neural_network": {
+                        "hidden_layer_sizes": [(50,), (100,), (50, 50), (100, 50)],
+                        "learning_rate_init": [0.001, 0.01, 0.1],
+                        "alpha": [0.0001, 0.001, 0.01],
+                        "activation": ["relu", "tanh"],
+                        **self.TFIDF_PARAMS,
+                    },
                 },
             }
         else:
@@ -155,7 +224,30 @@ class ModelTuner:
                         "min_samples_split": [2, 5, 10],
                         "min_samples_leaf": [1, 2, 4],
                         "max_features": ["sqrt", "log2"],
-                    }
+                    },
+                    "gradient_boosting": {
+                        "learning_rate": [0.01, 0.1, 0.2],
+                        "n_estimators": [50, 100, 200],
+                        "max_depth": [3, 5, 7],
+                        "subsample": [0.8, 0.9, 1.0],
+                        "min_samples_split": [2, 5, 10],
+                    },
+                    "logistic_regression": {
+                        "penalty": ["l1", "l2", "elasticnet"],
+                        "C": [0.001, 0.01, 0.1, 1, 10],
+                        "solver": ["liblinear", "saga"],
+                    },
+                    "svm": {
+                        "C": [0.001, 0.01, 0.1, 1, 10],
+                        "kernel": ["linear", "rbf", "poly"],
+                        "gamma": ["scale", "auto", 0.001, 0.01, 0.1],
+                    },
+                    "neural_network": {
+                        "hidden_layer_sizes": [(50,), (100,), (50, 50), (100, 50)],
+                        "learning_rate_init": [0.001, 0.01, 0.1],
+                        "alpha": [0.0001, 0.001, 0.01],
+                        "activation": ["relu", "tanh"],
+                    },
                 },
                 "regression": {
                     "random_forest": {
@@ -164,7 +256,43 @@ class ModelTuner:
                         "min_samples_split": [2, 5, 10],
                         "min_samples_leaf": [1, 2, 4],
                         "max_features": ["sqrt", "log2"],
-                    }
+                    },
+                    "gradient_boosting": {
+                        "n_estimators": [50, 100, 200],
+                        "learning_rate": [0.01, 0.1, 0.2],
+                        "max_depth": [3, 5, 7],
+                        "subsample": [0.8, 0.9, 1.0],
+                        "min_samples_split": [2, 5, 10],
+                        "tfidf__max_features": [500, 1000, 1500],
+                        "tfidf__ngram_range": [(1, 1), (1, 2)],
+                    },
+                    "linear_regression": {
+                        "fit_intercept": [True, False],
+                        "normalize": [True, False],
+                    },
+                    "ridge": {
+                        "alpha": [0.1, 1.0, 10.0, 100.0, 1000.0],
+                        "fit_intercept": [True, False],
+                        "normalize": [True, False],
+                    },
+                    "lasso": {
+                        "alpha": [0.01, 0.1, 1.0, 10.0, 100.0],
+                        "fit_intercept": [True, False],
+                        "normalize": [True, False],
+                    },
+                    "svm": {
+                        "C": [0.1, 1.0, 10.0, 100.0],
+                        "kernel": ["linear", "rbf", "poly"],
+                        "gamma": ["scale", "auto", 0.001, 0.01, 0.1],
+                        "tfidf__max_features": [500, 1000, 1500],
+                        "tfidf__ngram_range": [(1, 1), (1, 2)],
+                    },
+                    "neural_network": {
+                        "hidden_layer_sizes": [(50,), (100,), (50, 50), (100, 50)],
+                        "learning_rate_init": [0.001, 0.01, 0.1],
+                        "alpha": [0.0001, 0.001, 0.01],
+                        "activation": ["relu", "tanh"],
+                    },
                 },
             }
 
